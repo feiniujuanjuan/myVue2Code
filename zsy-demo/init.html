@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>init</title>
+  <script src="../dist/vue.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- wode -->
+    {{ hh }}
+  </div>
+  <script>
+    var vm = new Vue({
+      el: '#app',
+      comments: false,
+      props: ['hh-a'],
+      data: {
+        msg: 'hello world',
+        arr: [1, 2, 3],
+        obj: {
+          a: 1,
+          b: 2,
+          c: 3,
+        }
+      },
+      computed: {
+        hh: function () {
+          return this.msg + ' ' + this.arr.join(' ')
+        },
+      },
+      watch: {
+        msg: [function (newVal, oldVal) {
+          console.log(newVal, oldVal)
+        }, function (newVal, oldVal) {
+          console.log(newVal)
+        }]
+      },
+      methods: {
+        init: function () {
+          console.log('init')
+        },
+        created: function () {
+          console.log('created')
+        },
+        history: function () {
+          console.log('history')
+        },
+      },
+    })
+    vm.$set(vm, 'msg', 4)
+    vm.$set(vm.arr, 3, 4)
+    vm.$set(vm.obj, 'name', {d: 5})
+    console.log(vm)
+  </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+/* not type checking this file because flow doesn't play well with Proxy */
+
+import config from 'core/config'
+import { warn, makeMap, isNative } from '../util/index'
+
+let initProxy
+
+if (process.env.NODE_ENV !== 'production') {
+  const allowedGlobals = makeMap(
+    'Infinity,undefined,NaN,isFinite,isNaN,' +
+    'parseFloat,parseInt,decodeURI,decodeURIComponent,encodeURI,encodeURIComponent,' +
+    'Math,Number,Date,Array,Object,Boolean,String,RegExp,Map,Set,JSON,Intl,BigInt,' +
+    'require' // for Webpack/Browserify
+  )
+
+  const warnNonPresent = (target, key) => {
+    warn(
+      `Property or method "${key}" is not defined on the instance but ` +
+      'referenced during render. Make sure that this property is reactive, ' +
+      'either in the data option, or for class-based components, by ' +
+      'initializing the property. ' +
+      'See: https://vuejs.org/v2/guide/reactivity.html#Declaring-Reactive-Properties.',
+      target
+    )
+  }
+
+  const warnReservedPrefix = (target, key) => {
+    warn(
+      `Property "${key}" must be accessed with "$data.${key}" because ` +
+      'properties starting with "$" or "_" are not proxied in the Vue instance to ' +
+      'prevent conflicts with Vue internals. ' +
+      'See: https://vuejs.org/v2/api/#data',
+      target
+    )
+  }
+
+  const hasProxy =
+    typeof Proxy !== 'undefined' && isNative(Proxy)
+
+  if (hasProxy) {
+    const isBuiltInModifier = makeMap('stop,prevent,self,ctrl,shift,alt,meta,exact')
+    config.keyCodes = new Proxy(config.keyCodes, {
+      set (target, key, value) {
+        if (isBuiltInModifier(key)) {
+          warn(`Avoid overwriting built-in modifier in config.keyCodes: .${key}`)
+          return false
+        } else {
+          target[key] = value
+          return true
+        }
+      }
+    })
+  }
+
+  const hasHandler = {
+    has (target, key) {
+      const has = key in target
+      const isAllowed = allowedGlobals(key) ||
+        (typeof key === 'string' && key.charAt(0) === '_' && !(key in target.$data))
+      if (!has && !isAllowed) {
+        if (key in target.$data) warnReservedPrefix(target, key)
+        else warnNonPresent(target, key)
+      }
+      return has || !isAllowed
+    }
+  }
+
+  const getHandler = {
+    get (target, key) {
+      if (typeof key === 'string' && !(key in target)) {
+        if (key in target.$data) warnReservedPrefix(target, key)
+        else warnNonPresent(target, key)
+      }
+      return target[key]
+    }
+  }
+
+  initProxy = function initProxy (vm) {
+    if (hasProxy) {
+      // 如果环境支持 Proxy
+      // 确定使用哪个代理处理程序
+      const options = vm.$options // 获取 Vue 实例的选项
+      const handlers = options.render && options.render._withStripped
+        ? getHandler // 如果 render 选项存在，并且 _withStripped 为真，那么使用 getHandler
+        : hasHandler // 否则使用 hasHandler
+      vm._renderProxy = new Proxy(vm, handlers) // 创建一个新的 Proxy 实例，代理 vm，并使用 handlers 处理程序
+    } else {
+      // 如果环境不支持 Proxy，那么 _renderProxy 就是 vm 本身
+      vm._renderProxy = vm
+    }
+  }
+}
+
+export { initProxy }
