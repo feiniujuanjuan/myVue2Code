@@ -16,7 +16,6 @@ export const createCompiler = createCompilerCreator(function baseCompile (
   template: string,
   options: CompilerOptions
 ): CompiledResult {
-  console.log(template)
   // 使用 parse 函数解析模板字符串，生成抽象语法树
   const ast = parse(template.trim(), options)
   // 如果 optimize 选项不为 false，使用 optimize 函数优化抽象语法树

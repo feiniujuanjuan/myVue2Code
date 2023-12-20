@@ -11,12 +11,20 @@ export function baseWarn (msg: string, range?: Range) {
 }
 /* eslint-enable no-unused-vars */
 
+/**
+ * 从模块数组中提取指定键的函数。
+ * @param {Array<Object>} modules - 模块数组。
+ * @param {string} key - 需要提取的键。
+ * @returns {Array<Function>} 返回提取到的函数数组。
+ */
 export function pluckModuleFunction<F: Function> (
   modules: ?Array<Object>,
   key: string
 ): Array<F> {
   return modules
+    // 如果模块数组存在，则遍历模块数组
     ? modules.map(m => m[key]).filter(_ => _)
+    // 如果模块数组不存在，则返回空数组
     : []
 }
 

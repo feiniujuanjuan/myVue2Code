@@ -256,6 +256,7 @@ export function parse (
     start (tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
+      // 检查命名空间，如果存在父节点，则继承父节点的命名空间
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
       // handle IE svg bug
@@ -264,6 +265,7 @@ export function parse (
         attrs = guardIESVGBug(attrs)
       }
 
+      // 创建 AST 元素
       let element: ASTElement = createASTElement(tag, attrs, currentParent)
       if (ns) {
         element.ns = ns
@@ -303,20 +305,22 @@ export function parse (
       }
 
       // apply pre-transforms
+      // 应用预转换
       for (let i = 0; i < preTransforms.length; i++) {
         element = preTransforms[i](element, options) || element
       }
-
+      // 处理 v-pre 指令
       if (!inVPre) {
         processPre(element)
         if (element.pre) {
           inVPre = true
         }
       }
+      // 如果元素的标签是 pre 标签，就进入 pre 模式
       if (platformIsPreTag(element.tag)) {
         inPre = true
       }
-      if (inVPre) {
+      if (inVPre) {// 如果在 v-pre 指令中，则处理原始属性
         processRawAttrs(element)
       } else if (!element.processed) {
         // structural directives
@@ -326,16 +330,20 @@ export function parse (
       }
 
       if (!root) {
+        // 如果还没有根元素，则设置当前元素为根元素
         root = element
         if (process.env.NODE_ENV !== 'production') {
+          // 在非生产环境下，检查根元素的约束
           checkRootConstraints(root)
         }
       }
-
+      
       if (!unary) {
+        // 如果标签不是自闭合标签，则将当前元素设置为当前父节点，并将其添加到堆栈中
         currentParent = element
         stack.push(element)
       } else {
+        // 如果标签是自闭合标签，则关闭元素
         closeElement(element)
       }
     },
@@ -442,29 +450,42 @@ export function parse (
   return root
 }
 
+/**
+ * 处理 v-pre 指令。
+ * @param {Object} el - AST 元素。
+ */
 function processPre (el) {
+  // 如果元素上有 v-pre 指令，则设置元素的 pre 属性为 true
   if (getAndRemoveAttr(el, 'v-pre') != null) {
     el.pre = true
   }
 }
 
+/**
+ * 处理元素的原始属性。
+ * @param {Object} el - AST 元素。
+ */
 function processRawAttrs (el) {
+  // 获取元素的属性列表
   const list = el.attrsList
   const len = list.length
   if (len) {
+    // 如果属性列表的长度不为 0，则遍历属性列表
     const attrs: Array<ASTAttr> = el.attrs = new Array(len)
     for (let i = 0; i < len; i++) {
+      // 将每个属性的名字和值（值需要转为 JSON 字符串）添加到 attrs 数组中
       attrs[i] = {
         name: list[i].name,
         value: JSON.stringify(list[i].value)
       }
+      // 如果属性有开始位置，则记录开始和结束位置
       if (list[i].start != null) {
         attrs[i].start = list[i].start
         attrs[i].end = list[i].end
       }
     }
   } else if (!el.pre) {
-    // non root node in pre blocks with no attributes
+    // 如果元素没有属性，并且没有被 v-pre 指令标记，则设置元素的 plain 属性为 true
     el.plain = true
   }
 }
