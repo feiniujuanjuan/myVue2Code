@@ -102,17 +102,20 @@ export function genElement (el: ASTElement, state: CodegenState): string {
   } else if (el.tag === 'slot') {
     return genSlot(el, state)
   } else {
-    // 如果元素是组件或普通元素，生成组件或普通元素的代码
     let code
+    // 如果元素是一个组件，则生成组件的代码
     if (el.component) {
       code = genComponent(el.component, el, state)
     } else {
       let data
+      // 如果元素不是纯粹的，或者元素有 v-pre 指令并且可能是一个组件，则生成元素的数据
       if (!el.plain || (el.pre && state.maybeComponent(el))) {
         data = genData(el, state)
       }
 
+      // 如果元素没有内联模板，则生成子元素的代码
       const children = el.inlineTemplate ? null : genChildren(el, state, true)
+      // 生成元素的代码，其中包含元素的标签、数据和子元素
       code = `_c('${el.tag}'${
         data ? `,${data}` : '' // data
       }${
@@ -127,18 +130,26 @@ export function genElement (el: ASTElement, state: CodegenState): string {
   }
 }
 
-// hoist static sub-trees out
+/**
+ * 生成静态子树的代码。
+ * @param {ASTElement} el - AST 元素。
+ * @param {CodegenState} state - 代码生成状态。
+ * @returns {string} 返回生成的代码。
+ */
 function genStatic (el: ASTElement, state: CodegenState): string {
+  // 标记该元素已经处理过静态优化
   el.staticProcessed = true
-  // Some elements (templates) need to behave differently inside of a v-pre
-  // node.  All pre nodes are static roots, so we can use this as a location to
-  // wrap a state change and reset it upon exiting the pre node.
+  // 保存当前的 pre 状态
   const originalPreState = state.pre
+  // 如果元素有 v-pre 指令，则更新 pre 状态
   if (el.pre) {
     state.pre = el.pre
   }
+  // 生成元素的代码，并添加到静态渲染函数列表中
   state.staticRenderFns.push(`with(this){return ${genElement(el, state)}}`)
+  // 恢复原来的 pre 状态
   state.pre = originalPreState
+  // 返回生成的代码，其中包含静态渲染函数的索引和是否在 v-for 指令内部的信息
   return `_m(${
     state.staticRenderFns.length - 1
   }${
@@ -215,17 +226,28 @@ function genIfConditions (
   }
 }
 
+/**
+ * 生成 v-for 指令的代码。
+ * @param {ASTElement} el - AST 元素。
+ * @param {CodegenState} state - 代码生成状态。
+ * @param {Function} altGen - 可选的生成函数。
+ * @param {string} altHelper - 可选的辅助函数。
+ * @returns {string} 返回生成的代码。
+ */
 export function genFor (
   el: any,
   state: CodegenState,
   altGen?: Function,
   altHelper?: string
 ): string {
+  // 获取 v-for 指令的表达式和别名
   const exp = el.for
   const alias = el.alias
+  // 如果有迭代器，则获取迭代器
   const iterator1 = el.iterator1 ? `,${el.iterator1}` : ''
   const iterator2 = el.iterator2 ? `,${el.iterator2}` : ''
 
+  // 在非生产环境下，如果元素可能是一个组件，并且没有 key 属性，则发出警告
   if (process.env.NODE_ENV !== 'production' &&
     state.maybeComponent(el) &&
     el.tag !== 'slot' &&
@@ -241,7 +263,9 @@ export function genFor (
     )
   }
 
-  el.forProcessed = true // avoid recursion
+  // 标记该元素已经处理过 v-for 指令，避免递归
+  el.forProcessed = true
+  // 返回生成的代码，其中包含 v-for 指令的表达式、别名和迭代器，以及元素的代码
   return `${altHelper || '_l'}((${exp}),` +
     `function(${alias}${iterator1}${iterator2}){` +
       `return ${(altGen || genElement)(el, state)}` +

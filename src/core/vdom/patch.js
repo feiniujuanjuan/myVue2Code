@@ -122,6 +122,16 @@ export function createPatchFunction (backend) {
 
   let creatingElmInVPre = 0
 
+  /**
+   * 创建新的 DOM 元素。
+   * @param {VNode} vnode - 虚拟节点。
+   * @param {Array} insertedVnodeQueue - 插入的虚拟节点队列。
+   * @param {Element} parentElm - 父 DOM 元素。
+   * @param {Element} refElm - 参考 DOM 元素，新创建的 DOM 元素将插入到这个元素之前。
+   * @param {boolean} nested - 是否嵌套。
+   * @param {Array} ownerArray - 拥有者数组。
+   * @param {number} index - 索引。
+   */
   function createElm (
     vnode,
     insertedVnodeQueue,
@@ -131,16 +141,15 @@ export function createPatchFunction (backend) {
     ownerArray,
     index
   ) {
+    // 如果虚拟节点已经有对应的 DOM 元素，并且拥有者数组已定义，
+    // 则克隆虚拟节点，以避免在后续的插入参考节点时产生潜在的补丁错误。
     if (isDef(vnode.elm) && isDef(ownerArray)) {
-      // This vnode was used in a previous render!
-      // now it's used as a new node, overwriting its elm would cause
-      // potential patch errors down the road when it's used as an insertion
-      // reference node. Instead, we clone the node on-demand before creating
-      // associated DOM element for it.
       vnode = ownerArray[index] = cloneVNode(vnode)
     }
 
-    vnode.isRootInsert = !nested // for transition enter check
+    // 对于过渡的 enter 检查，如果不是嵌套的，则设置为根插入
+    vnode.isRootInsert = !nested
+    // 如果虚拟节点是一个组件，则创建组件
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
@@ -148,7 +157,9 @@ export function createPatchFunction (backend) {
     const data = vnode.data
     const children = vnode.children
     const tag = vnode.tag
+    // 如果虚拟节点有标签，则创建对应的 DOM 元素
     if (isDef(tag)) {
+      // 在非生产环境下，如果虚拟节点是一个未知的自定义元素，则发出警告
       if (process.env.NODE_ENV !== 'production') {
         if (data && data.pre) {
           creatingElmInVPre++
@@ -163,16 +174,14 @@ export function createPatchFunction (backend) {
         }
       }
 
+      // 创建 DOM 元素，并设置作用域
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode)
       setScope(vnode)
 
-      /* istanbul ignore if */
+      // 在 Weex 中，创建子节点，并插入 DOM 元素
       if (__WEEX__) {
-        // in Weex, the default insertion order is parent-first.
-        // List items can be optimized to use children-first insertion
-        // with append="tree".
         const appendAsTree = isDef(data) && isTrue(data.appendAsTree)
         if (!appendAsTree) {
           if (isDef(data)) {
@@ -188,6 +197,7 @@ export function createPatchFunction (backend) {
           insert(parentElm, vnode.elm, refElm)
         }
       } else {
+        // 在非 Weex 环境中，创建子节点，并插入 DOM 元素
         createChildren(vnode, children, insertedVnodeQueue)
         if (isDef(data)) {
           invokeCreateHooks(vnode, insertedVnodeQueue)
@@ -199,9 +209,11 @@ export function createPatchFunction (backend) {
         creatingElmInVPre--
       }
     } else if (isTrue(vnode.isComment)) {
+      // 如果虚拟节点是一个注释节点，则创建注释节点，并插入 DOM 元素
       vnode.elm = nodeOps.createComment(vnode.text)
       insert(parentElm, vnode.elm, refElm)
     } else {
+      // 如果虚拟节点是一个文本节点，则创建文本节点，并插入 DOM 元素
       vnode.elm = nodeOps.createTextNode(vnode.text)
       insert(parentElm, vnode.elm, refElm)
     }
@@ -312,14 +324,18 @@ export function createPatchFunction (backend) {
     }
   }
 
-  // set scope id attribute for scoped CSS.
-  // this is implemented as a special case to avoid the overhead
-  // of going through the normal attribute patching process.
+  /**
+   * 为具有作用域 CSS 的元素设置 scope id 属性。
+   * 这是作为一个特殊情况实现的，以避免通过正常的属性修补过程带来的开销。                                                                                                                                                                                                                                                                                                             
+   * @param {VNode} vnode - 虚拟节点。
+   */
   function setScope (vnode) {
     let i
+    // 如果虚拟节点有函数作用域 id，则设置样式作用域
     if (isDef(i = vnode.fnScopeId)) {
       nodeOps.setStyleScope(vnode.elm, i)
     } else {
+      // 否则，遍历祖先节点，如果找到具有作用域 id 的上下文，则设置样式作用域
       let ancestor = vnode
       while (ancestor) {
         if (isDef(i = ancestor.context) && isDef(i = i.$options._scopeId)) {
@@ -328,7 +344,7 @@ export function createPatchFunction (backend) {
         ancestor = ancestor.parent
       }
     }
-    // for slot content they should also get the scopeId from the host instance.
+    // 对于插槽内容，它们也应该从主机实例获取 scopeId
     if (isDef(i = activeInstance) &&
       i !== vnode.context &&
       i !== vnode.fnContext &&
@@ -697,7 +713,16 @@ export function createPatchFunction (backend) {
     }
   }
 
+  /**
+   * 对比新旧虚拟节点并进行更新。
+   * @param {VNode} oldVnode - 旧的虚拟节点。
+   * @param {VNode} vnode - 新的虚拟节点。
+   * @param {boolean} hydrating - 是否进行 SSR 水合操作。
+   * @param {boolean} removeOnly - 是否只进行移除操作。
+   * @returns {Element} 返回更新后的 DOM 元素。
+   */
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
+    // 如果新的虚拟节点未定义，则直接销毁旧的虚拟节点
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return
@@ -706,20 +731,19 @@ export function createPatchFunction (backend) {
     let isInitialPatch = false
     const insertedVnodeQueue = []
 
+    // 如果旧的虚拟节点未定义，则创建新的根元素
     if (isUndef(oldVnode)) {
-      // empty mount (likely as component), create new root element
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue)
     } else {
       const isRealElement = isDef(oldVnode.nodeType)
+      // 如果旧的虚拟节点和新的虚拟节点是同一个节点，则进行更新操作
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
-        // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly)
       } else {
+        // 如果旧的虚拟节点是真实 DOM 元素
         if (isRealElement) {
-          // mounting to a real element
-          // check if this is server-rendered content and if we can perform
-          // a successful hydration.
+          // 如果旧的虚拟节点是服务器渲染的内容，尝试进行水合操作
           if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {
             oldVnode.removeAttribute(SSR_ATTR)
             hydrating = true
@@ -728,37 +752,28 @@ export function createPatchFunction (backend) {
             if (hydrate(oldVnode, vnode, insertedVnodeQueue)) {
               invokeInsertHook(vnode, insertedVnodeQueue, true)
               return oldVnode
-            } else if (process.env.NODE_ENV !== 'production') {
-              warn(
-                'The client-side rendered virtual DOM tree is not matching ' +
-                'server-rendered content. This is likely caused by incorrect ' +
-                'HTML markup, for example nesting block-level elements inside ' +
-                '<p>, or missing <tbody>. Bailing hydration and performing ' +
-                'full client-side render.'
-              )
+            } else {
+              // 如果水合操作失败，则进行客户端渲染
+              warn('The client-side rendered virtual DOM tree is not matching server-rendered content. This is likely caused by incorrect HTML markup, for example nesting block-level elements inside <p>, or missing <tbody>. Bailing hydration and performing full client-side render.')
             }
           }
-          // either not server-rendered, or hydration failed.
-          // create an empty node and replace it
+          // 创建一个空的虚拟节点并替换旧的虚拟节点
           oldVnode = emptyNodeAt(oldVnode)
         }
 
-        // replacing existing element
+        // 替换现有的元素
         const oldElm = oldVnode.elm
         const parentElm = nodeOps.parentNode(oldElm)
 
-        // create new node
+        // 创建新的节点
         createElm(
           vnode,
           insertedVnodeQueue,
-          // extremely rare edge case: do not insert if old element is in a
-          // leaving transition. Only happens when combining transition +
-          // keep-alive + HOCs. (#4590)
           oldElm._leaveCb ? null : parentElm,
           nodeOps.nextSibling(oldElm)
         )
 
-        // update parent placeholder node element, recursively
+        // 更新父占位符节点元素，递归地
         if (isDef(vnode.parent)) {
           let ancestor = vnode.parent
           const patchable = isPatchable(vnode)
@@ -771,12 +786,8 @@ export function createPatchFunction (backend) {
               for (let i = 0; i < cbs.create.length; ++i) {
                 cbs.create[i](emptyNode, ancestor)
               }
-              // #6513
-              // invoke insert hooks that may have been merged by create hooks.
-              // e.g. for directives that uses the "inserted" hook.
               const insert = ancestor.data.hook.insert
               if (insert.merged) {
-                // start at index 1 to avoid re-invoking component mounted hook
                 for (let i = 1; i < insert.fns.length; i++) {
                   insert.fns[i]()
                 }
@@ -788,7 +799,7 @@ export function createPatchFunction (backend) {
           }
         }
 
-        // destroy old node
+        // 销毁旧的节点
         if (isDef(parentElm)) {
           removeVnodes([oldVnode], 0, 0)
         } else if (isDef(oldVnode.tag)) {

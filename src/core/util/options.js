@@ -305,7 +305,6 @@ function normalizeProps (options: Object, vm: ?Component) {
       val = props[i]
       if (typeof val === 'string') { // 如果 val 是字符串
         name = camelize(val) // 将 val 转换为驼峰式命名
-        console.log(name)
         res[name] = { type: null } // 在 res 中添加一个新的属性，其类型为 null
       } else if (process.env.NODE_ENV !== 'production') {
         // 如果不是在生产环境下，那么警告 props 必须是字符串

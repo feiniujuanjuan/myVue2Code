@@ -7,8 +7,11 @@
   <script src="../dist/vue.js"></script>
 </head>
 <body>
-  <div id="app" class="www">
+  <div id="app" class="www" @mouseenter="show">
     {{ hh }}
+    zzz
+    {{ msg }}
+    www
   </div>
   <script>
     var vm = new Vue({
@@ -46,11 +49,11 @@
         history: function () {
           console.log('history')
         },
+        show() {
+          console.log('show')
+        }
       },
     })
-    vm.$set(vm, 'msg', 4)
-    vm.$set(vm.arr, 3, 4)
-    vm.$set(vm.obj, 'name', {d: 5})
     console.log(vm)
   </script>
 </body>

@@ -35,7 +35,6 @@ export function initMixin(Vue: Class<Component>) {
       // 内部组件选项需要特殊处理。
       initInternalComponent(vm, options); // 初始化内部组件
     } else {
-      console.log(vm.constructor)
       // 合并构造函数选项、实例选项和实例本身
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor), // 解析构造函数选项

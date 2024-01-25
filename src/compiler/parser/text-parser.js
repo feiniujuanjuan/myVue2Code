@@ -40,13 +40,11 @@ export function parseText (
   let match, index, tokenValue
   // 使用正则表达式匹配文本
   while ((match = tagRE.exec(text))) {
-    console.log(match, lastIndex)
     index = match.index
     // 如果匹配到的位置大于上一次的位置，则将中间的文本添加到 tokens 和 rawTokens 中
     if (index > lastIndex) {
       rawTokens.push(tokenValue = text.slice(lastIndex, index))
       tokens.push(JSON.stringify(tokenValue))
-      console.log(rawTokens, tokens)
     }
     // 解析过滤器，并将结果添加到 tokens 和 rawTokens 中
     const exp = parseFilters(match[1].trim())

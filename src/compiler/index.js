@@ -18,12 +18,14 @@ export const createCompiler = createCompilerCreator(function baseCompile (
 ): CompiledResult {
   // 使用 parse 函数解析模板字符串，生成抽象语法树
   const ast = parse(template.trim(), options)
+  console.log(ast)
   // 如果 optimize 选项不为 false，使用 optimize 函数优化抽象语法树
   if (options.optimize !== false) {
     optimize(ast, options)
   }
   // 使用 generate 函数生成代码
   const code = generate(ast, options)
+  console.log(code)
   // 返回编译结果，包括抽象语法树、渲染函数和静态渲染函数
   return {
     ast,

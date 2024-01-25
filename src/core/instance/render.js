@@ -96,6 +96,7 @@ export function renderMixin (Vue: Class<Component>) {
       currentRenderingInstance = vm
       // 调用渲染函数创建虚拟节点
       vnode = render.call(vm._renderProxy, vm.$createElement)
+      console.log(vnode)
     } catch (e) {
       // 处理渲染错误
       handleError(e, vm, `render`)

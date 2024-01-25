@@ -155,7 +155,6 @@ export function parseHTML (html, options) {
       let text, rest, next
       if (textEnd >= 0) {
         rest = html.slice(textEnd)
-        console.log(rest)
         while (
           !endTag.test(rest) &&
           !startTagOpen.test(rest) &&
@@ -169,7 +168,6 @@ export function parseHTML (html, options) {
           rest = html.slice(textEnd)
         }
         text = html.substring(0, textEnd)
-        console.log(text)
       }
 
       if (textEnd < 0) {

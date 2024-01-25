@@ -16,6 +16,7 @@ const idToTemplate = cached(id => {
 
 // 保存原始的 $mount 方法
 const mount = Vue.prototype.$mount
+console.log('mount', mount)
 // 重新定义 $mount 方法
 Vue.prototype.$mount = function (
   el?: string | Element,
